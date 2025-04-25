@@ -98,16 +98,12 @@ async function fetchDataByMobile(mobNo) {
 }
 async function fetchSchoolData(code) {
   const { collection, client } = await getCollection("schools-datas");
-  console.log(code);
-
   try {
-    const schoolData = await collection.findOne({ schoolCode: code });
-    console.log("fetched-data-from-schools-datas-111")
+    const schoolData = await collection.findOne({ schoolCode: parseInt(schoolCode) });
     if (!schoolData) {
       console.error("No school found for School Code:", code);
       return { error: "No school found with this code" };
     }
-    console.log("returning data - 116")
     return schoolData;
   } catch (error) {
     console.error("Error fetching school data:", error);

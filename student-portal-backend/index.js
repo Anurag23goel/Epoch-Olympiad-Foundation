@@ -393,7 +393,7 @@ app.delete("/school/:schoolCode", async (req, res) => {
     return res.status(400).json({ message: "School Code is required" });
   }
 
-  const deletedSchool = await School.findOneAndDelete({ schoolCode });
+  const deletedSchool = await School.findOneAndDelete({ schoolCode: parseInt(schoolCode) });
 
   if (!deletedSchool) {
     return res.status(404).json({ message: "School not found" });
