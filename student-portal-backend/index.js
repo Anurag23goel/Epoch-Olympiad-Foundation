@@ -1,7 +1,7 @@
 import express from "express";
 import multer from "multer";
 import cors from "cors";
-import fs from "fs/promises"; // Use promises version for async
+import fs from "fs/promises"; 
 import dotenv from "dotenv";
 import { fetchDataByMobile } from "./service.js";
 import {

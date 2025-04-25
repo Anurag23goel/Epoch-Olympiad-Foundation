@@ -82,16 +82,10 @@ async function fetchDataByMobile(mobNo) {
       "Total Amount Paid": data.totalAmountPaid || "",
       "Total Amount Paid Online": data.totalAmountPaidOnline || "",
       // School data fields (unchanged)
-      // "School City": schoolData?.city?.trim() || "Unknown",
-      // Country: schoolData?.country?.trim() || "Unknown",
-      // School: schoolData?.schoolName?.trim() || "Unknown",
-      // // "Exam Centre": schoolData?.examCenterLevel1?.trim() || "Unknown",
-      // Area: schoolData?.area?.trim() || "Unknown",
-
-      "School City": typeof schoolData?.city === "string" ? schoolData.city.trim() : "Unknown",
-      Country: typeof schoolData?.country === "string" ? schoolData.country.trim() : "Unknown",
-      School: typeof schoolData?.schoolName === "string" ? schoolData.schoolName.trim() : "Unknown",
-      Area: typeof schoolData?.area === "string" ? schoolData.area.trim() : "Unknown",
+      "School City": schoolData?.city?.trim() || "Unknown",
+      Country: schoolData?.country?.trim() || "Unknown",
+      School: schoolData?.schoolName?.trim() || "Unknown",
+      Area: schoolData?.area?.trim() || "Unknown",
     };
 
     return extractedData;
@@ -104,14 +98,16 @@ async function fetchDataByMobile(mobNo) {
 }
 async function fetchSchoolData(code) {
   const { collection, client } = await getCollection("schools-datas");
+  console.log(code);
 
   try {
     const schoolData = await collection.findOne({ schoolCode: code });
-
+    console.log("fetched-data-from-schools-datas-111")
     if (!schoolData) {
       console.error("No school found for School Code:", code);
       return { error: "No school found with this code" };
     }
+    console.log("returning data - 116")
     return schoolData;
   } catch (error) {
     console.error("Error fetching school data:", error);

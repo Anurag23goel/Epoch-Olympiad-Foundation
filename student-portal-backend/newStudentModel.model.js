@@ -393,7 +393,7 @@ const StudentSchema = new Schema(
 
 // Register the model
 export const STUDENT_LATEST = mongoose.model(
-  "student_data_latest",
+  "student_data_latests",
   StudentSchema
 );
 

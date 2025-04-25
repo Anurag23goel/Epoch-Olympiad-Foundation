@@ -194,5 +194,3 @@ export async function excelToMongoDB(filePath) {
     console.error("Error:", error.message);
   }
 }
-
-
