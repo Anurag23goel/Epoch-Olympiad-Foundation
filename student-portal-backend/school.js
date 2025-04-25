@@ -25,6 +25,6 @@ const schoolSchema = new mongoose.Schema({
 
 const modelName = "schools-datas";
 
-const School = mongoose.models[modelName] || mongoose.model(modelName, schoolSchema);
+const School = mongoose.models[modelName] || mongoose.model(modelName, schoolSchema, modelName);
 
 module.exports = { School };
