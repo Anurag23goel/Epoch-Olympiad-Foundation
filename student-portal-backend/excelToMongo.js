@@ -112,15 +112,23 @@ export async function excelToMongoDB(filePath) {
         if (header === "Duplicates") {
           value = value === "1" || value === 1 || value === true;
         } else if (header === "schoolCode") {
-          // Always convert schoolCode to Number if possible
+          // Explicitly convert schoolCode to a number and ensure it stays a number
           const num = Number(value);
-          value = !isNaN(num) ? num : value;
+          value = isNaN(num) ? value : num; // If conversion fails, keep original value
         } else if (stringFields.includes(header) && isNumeric(value)) {
           value = String(value);
         }
 
         doc[header] = value !== null ? value : "";
       });
+
+      // Double-check schoolCode is a number before insertion
+      if (doc.schoolCode !== "" && !isNaN(doc.schoolCode)) {
+        doc.schoolCode = Number(doc.schoolCode);
+      } else {
+        console.warn(`schoolCode for rollNo ${doc.rollNo} could not be converted to a number: ${doc.schoolCode}`);
+      }
+
       return doc;
     });
 
@@ -131,8 +139,15 @@ export async function excelToMongoDB(filePath) {
     const db = client.db(dbName);
     const collection = db.collection(collectionName);
 
+    // // Drop existing collection to ensure clean data (optional, remove if not desired)
+    // await collection.drop().catch(err => console.log("Collection does not exist, creating new one"));
+
     const result = await collection.insertMany(documents);
     console.log(`${result.insertedCount} documents inserted successfully`);
+
+    // Verify the data type after insertion
+    const sampleDoc = await collection.findOne({ schoolCode: { $exists: true } });
+    console.log(`Sample schoolCode type: ${typeof sampleDoc.schoolCode}, value: ${sampleDoc.schoolCode}`);
 
     await client.close();
   } catch (error) {

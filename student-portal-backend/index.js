@@ -20,6 +20,7 @@ import {
 import mongoose from "mongoose";
 import { School, convertXlsxToMongo } from "./school.js";
 import { Admin } from "./admin.js";
+const { Int32 } = require("mongodb");
 
 dotenv.config();
 
@@ -393,16 +394,28 @@ app.delete("/school/:schoolCode", async (req, res) => {
     return res.status(400).json({ message: "School Code is required" });
   }
 
-  const deletedSchool = await School.findOneAndDelete({ schoolCode: parseInt(schoolCode) });
-
-  if (!deletedSchool) {
-    return res.status(404).json({ message: "School not found" });
+  let parsedCode = parseInt(schoolCode, 10);
+  if (isNaN(parsedCode)) {
+    return res.status(400).json({ message: "Invalid School Code format" });
   }
 
-  return res.status(200).json({
-    message: "School deleted successfully",
-    success: true,
-  });
+  const queryCode = new Int32(parsedCode);
+
+  try {
+    const deletedSchool = await School.findOneAndDelete({ schoolCode: queryCode });
+
+    if (!deletedSchool) {
+      return res.status(404).json({ message: "School not found" });
+    }
+
+    return res.status(200).json({
+      message: "School deleted successfully",
+      success: true,
+    });
+  } catch (error) {
+    console.error("Error deleting school:", error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
 });
 
 app.post("/add-school", async (req, res) => {

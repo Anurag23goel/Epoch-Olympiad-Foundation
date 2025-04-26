@@ -1,5 +1,6 @@
 require("dotenv").config();
 const { MongoClient } = require("mongodb");
+const { Int32 } = require("mongodb"); 
 
 const mongoURI = process.env.MONGO_URI;
 const dbName = process.env.DATABASE_NAME;
@@ -99,12 +100,30 @@ async function fetchDataByMobile(mobNo) {
 
 async function fetchSchoolData(code) {
   const { collection, client } = await getCollection("schools-datas");
+
   try {
-    const schoolData = await collection.findOne({ schoolCode: parseInt(code) });
+    let schoolCode;
+    if (typeof code === "string") {
+      schoolCode = parseInt(code, 10);
+      if (isNaN(schoolCode)) {
+        console.error("Invalid school code: cannot convert to number:", code);
+        return { error: "Invalid school code: must be a valid number" };
+      }
+    } else if (typeof code === "number") {
+      schoolCode = Math.floor(code);
+    } else {
+      console.error("Invalid school code type:", typeof code);
+      return { error: "Invalid school code: must be a string or number" };
+    }
+
+    const queryCode = new Int32(schoolCode);
+    const schoolData = await collection.findOne({ schoolCode: queryCode });
+
     if (!schoolData) {
-      console.error("No school found for School Code:", code);
+      console.error("No school found for School Code:", schoolCode);
       return { error: "No school found with this code" };
     }
+
     return schoolData;
   } catch (error) {
     console.error("Error fetching school data:", error);
@@ -113,5 +132,6 @@ async function fetchSchoolData(code) {
     await client.close();
   }
 }
+
 
 module.exports = { fetchDataByMobile };
