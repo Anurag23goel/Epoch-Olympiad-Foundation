@@ -116,11 +116,11 @@ async function fetchSchoolData(code) {
       return { error: "Invalid school code: must be a string or number" };
     }
 
-    const queryCode = new Int32(schoolCode);
-    const schoolData = await collection.findOne({ queryCode });
+    const queryValue = new Int32(schoolCode);
+    const schoolData = await collection.findOne({ schoolCode: queryValue }); 
 
     if (!schoolData) {
-      console.error("No school found for School Code:", schoolCode);
+      console.error("No school found for School Code:", queryValue);
       return { error: "No school found with this code" };
     }
 
@@ -132,6 +132,5 @@ async function fetchSchoolData(code) {
     await client.close();
   }
 }
-
 
 module.exports = { fetchDataByMobile };
