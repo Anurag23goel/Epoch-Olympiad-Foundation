@@ -117,7 +117,7 @@ async function fetchSchoolData(code) {
     }
 
     const queryCode = new Int32(schoolCode);
-    const schoolData = await collection.findOne({ schoolCode: queryCode });
+    const schoolData = await collection.findOne({ queryCode });
 
     if (!schoolData) {
       console.error("No school found for School Code:", schoolCode);
