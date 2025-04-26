@@ -102,25 +102,26 @@ async function fetchSchoolData(code) {
   const { collection, client } = await getCollection("schools-datas");
 
   try {
-    let schoolCode;
+    let schoolCodeNumber;
     if (typeof code === "string") {
-      schoolCode = parseInt(code, 10);
-      if (isNaN(schoolCode)) {
-        console.error("Invalid school code: cannot convert to number:", code);
+      const cleanedCode = code.replace(/,/g, '').replace(/"/g, '').trim();
+      schoolCodeNumber = parseInt(cleanedCode, 10);
+      if (isNaN(schoolCodeNumber)) {
+        console.error("Invalid school code (after cleaning): cannot convert to number:", cleanedCode);
         return { error: "Invalid school code: must be a valid number" };
       }
     } else if (typeof code === "number") {
-      schoolCode = Math.floor(code);
+      schoolCodeNumber = Math.floor(code);
     } else {
       console.error("Invalid school code type:", typeof code);
       return { error: "Invalid school code: must be a string or number" };
     }
 
-    const queryValue = new Int32(schoolCode);
-    const schoolData = await collection.findOne({ schoolCode: queryValue }); 
+    const queryValue = new Int32(schoolCodeNumber);
+    const schoolData = await collection.findOne({ schoolCode: queryValue });
 
     if (!schoolData) {
-      console.error("No school found for School Code:", queryValue);
+      console.error("No school found for School Code:", schoolCodeNumber);
       return { error: "No school found with this code" };
     }
 
