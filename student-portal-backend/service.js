@@ -1,6 +1,6 @@
 require("dotenv").config();
 const { MongoClient } = require("mongodb");
-const { Int32 } = require("mongodb"); 
+import { School } from "./school.js";
 
 const mongoURI = process.env.MONGO_URI;
 const dbName = process.env.DATABASE_NAME;
@@ -98,9 +98,44 @@ async function fetchDataByMobile(mobNo) {
   }
 }
 
-async function fetchSchoolData(code) {
-  const { collection, client } = await getCollection("schools-datas");
+// async function fetchSchoolData(code) {
+//   const { collection, client } = await getCollection("schools-datas");
 
+//   try {
+//     let schoolCodeNumber;
+//     if (typeof code === "string") {
+//       const cleanedCode = code.replace(/,/g, '').replace(/"/g, '').trim();
+//       schoolCodeNumber = parseInt(cleanedCode, 10);
+//       if (isNaN(schoolCodeNumber)) {
+//         console.error("Invalid school code (after cleaning): cannot convert to number:", cleanedCode);
+//         return { error: "Invalid school code: must be a valid number" };
+//       }
+//     } else if (typeof code === "number") {
+//       schoolCodeNumber = Math.floor(code);
+//     } else {
+//       console.error("Invalid school code type:", typeof code);
+//       return { error: "Invalid school code: must be a string or number" };
+//     }
+
+//     const queryValue = new Int32(schoolCodeNumber);
+//     const schoolData = await collection.findOne({ schoolCode: queryValue });
+
+//     if (!schoolData) {
+//       console.error("No school found for School Code:", schoolCodeNumber, ", in collection :", collection.name);
+//       return { error: "No school found with this code" };
+//     }
+
+//     return schoolData;
+//   } catch (error) {
+//     console.error("Error fetching school data:", error);
+//     return { error: "Failed to fetch school data", details: error.message };
+//   } finally {
+//     await client.close();
+//   }
+// }
+
+
+async function fetchSchoolData(code) {
   try {
     let schoolCodeNumber;
     if (typeof code === "string") {
@@ -117,21 +152,20 @@ async function fetchSchoolData(code) {
       return { error: "Invalid school code: must be a string or number" };
     }
 
-    const queryValue = new Int32(schoolCodeNumber);
-    const schoolData = await collection.findOne({ schoolCode: queryValue });
+    const schoolData = await School.findOne({ schoolCode: schoolCodeNumber });
 
     if (!schoolData) {
-      console.error("No school found for School Code:", schoolCodeNumber);
+      console.error("No school found for School Code:", schoolCodeNumber, ", in collection: schools-datas (using Mongoose)");
       return { error: "No school found with this code" };
     }
 
-    return schoolData;
+    return schoolData.toObject();
   } catch (error) {
     console.error("Error fetching school data:", error);
     return { error: "Failed to fetch school data", details: error.message };
-  } finally {
-    await client.close();
   }
 }
+
+
 
 module.exports = { fetchDataByMobile };

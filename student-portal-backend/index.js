@@ -314,18 +314,18 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 });
 
 // API to upload school data in bulk
-app.post("/upload-schooldata", upload.single("file"), async (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ message: "Please upload a CSV file" });
-  }
+// app.post("/upload-schooldata", upload.single("file"), async (req, res) => {
+//   if (!req.file) {
+//     return res.status(400).json({ message: "Please upload a CSV file" });
+//   }
 
-  try {
-    const response = await convertXlsxToMongo(req.file.path);
-    res.status(200).json(response);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+//   try {
+//     const response = await convertXlsxToMongo(req.file.path);
+//     res.status(200).json(response);
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// });
 // API to add single student
 app.post("/add-student", async (req, res) => {
   try {
