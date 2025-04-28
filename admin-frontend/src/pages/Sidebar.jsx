@@ -100,13 +100,13 @@ const Sidebar = () => {
             active={location.pathname === "/allStudents"}
             onClick={closeSidebar}
           />
-           <MenuItem
+{/*            <MenuItem
             icon={<School size={20} />}
             text="Upload Schools"
             href="/uploadSchoolData"
             active={location.pathname === "/singleSchool"}
             onClick={closeSidebar}
-          />
+          /> */}
           <MenuItem
             icon={<FileUp size={20} />}
             text="Upload Students"
