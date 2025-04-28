@@ -1,10 +1,16 @@
-import React, {useState} from 'react'
-import axios from 'axios';
-import { BASE_URL } from '../Api';
-import { AlertCircle, CheckCircle2, Download, FileSpreadsheet, Upload } from 'lucide-react';
+import React, { useState } from "react";
+import axios from "axios";
+import { BASE_URL } from "../Api";
+import {
+  AlertCircle,
+  CheckCircle2,
+  Download,
+  FileSpreadsheet,
+  Upload,
+} from "lucide-react";
 
 const UploadBulkSchoolData = () => {
-    const [file, setFile] = useState(null);
+  const [file, setFile] = useState(null);
   const [uploadStatus, setUploadStatus] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -192,8 +198,7 @@ const UploadBulkSchoolData = () => {
               <li className="flex items-start gap-2">
                 <div className="min-w-4 mt-1">•</div>
                 <p>
-                  Required columns: School Name, Address, Contact Person, Email,
-                  Phone Number
+                  Required columns: School Name, School Email, School Code, FAX, Incharge, Pricipal Name
                 </p>
               </li>
               <li className="flex items-start gap-2">
@@ -207,10 +212,14 @@ const UploadBulkSchoolData = () => {
             </ul>
 
             <div className="pt-4 border-t border-gray-200">
-              <button className="flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm font-medium">
+              <a
+                href="/School-Master-Final-CSV.csv"
+                className="hover:cursor-pointer flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm font-medium"
+                download
+              >
                 <Download className="w-4 h-4" />
-                Download Sample Template
-              </button>
+                Download CSV Template
+              </a>
             </div>
 
             <div className="bg-blue-50 rounded-lg p-4 mt-6">
@@ -227,6 +236,6 @@ const UploadBulkSchoolData = () => {
       </div>
     </div>
   );
-}
+};
 
-export default UploadBulkSchoolData
+export default UploadBulkSchoolData;
