@@ -9,7 +9,7 @@ dotenv.config();
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI);
 
-export async function convertXlsxToMongo(filePath) {
+export async function convertXlsxToMongoDbForSchool(filePath) {
   try {
     // Read and parse the CSV file
     // CSV columns: School Code,School Name,Email Id,FAX,Area,City,Country,Incharge,Incharge DOB,Incharge Mob,Principal Name,Principal DOB,Principal Mob,Remark

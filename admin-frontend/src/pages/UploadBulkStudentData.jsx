@@ -67,7 +67,7 @@ const UploadBulkStudentData = () => {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await axios.post(`${BASE_URL}/upload`, formData, {
+      const response = await axios.post(`${BASE_URL}/upload-studentData`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
@@ -78,7 +78,7 @@ const UploadBulkStudentData = () => {
       if (response.status === 200) {
         setUploadStatus({
           type: "success",
-          message: "School data uploaded successfully!",
+          message: "Student data uploaded successfully!",
         });
         setFile(null);
       } else {

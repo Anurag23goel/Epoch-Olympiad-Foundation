@@ -198,7 +198,9 @@ const UploadBulkSchoolData = () => {
               <li className="flex items-start gap-2">
                 <div className="min-w-4 mt-1">•</div>
                 <p>
-                  Required columns: School Name, School Email, School Code, FAX, Incharge, Pricipal Name
+                  Required columns: <strong>School Name</strong>,{" "}
+                  <strong>School Code</strong>, <strong>Email Id</strong>,{" "}
+                  <strong>School Mob No.</strong>
                 </p>
               </li>
               <li className="flex items-start gap-2">
