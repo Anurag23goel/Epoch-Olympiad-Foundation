@@ -1,7 +1,7 @@
 import express from "express";
 import multer from "multer";
 import cors from "cors";
-import fs from "fs/promises"; 
+import fs from "fs/promises";
 import dotenv from "dotenv";
 import { fetchDataByMobile } from "./service.js";
 import {
@@ -18,9 +18,10 @@ import {
   getStudentsByFilters,
 } from "./newStudentModel.model.js";
 import mongoose from "mongoose";
-import { School, convertXlsxToMongo } from "./school.js";
+import { School } from "./school.js";
+import { convertXlsxToMongo } from "./excelToMongoForSchool.js";
 import { Admin } from "./admin.js";
-const { Int32 } = require("mongodb");
+import { Int32 } from "mongodb";
 
 dotenv.config();
 
@@ -39,10 +40,16 @@ app.use(cors({ origin: "*" }));
 app.use(express.json());
 
 // MongoDB Connection
+if (!process.env.MONGO_URI) {
+  console.error("Error: MONGO_URI is not defined in .env file");
+  process.exit(1); // Exit the process if MONGO_URI is missing
+}
+
 mongoose
-  .connect(
-    "mongodb+srv://Backend-developer:oILMhpb5rCvtSeMD@cluster0.9joex.mongodb.net/Epoch-olympiad-foundation"
-  )
+  .connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
   .then(() => console.log("MongoDB connected"))
   .catch((err) => console.error("MongoDB connection error:", err));
 
@@ -85,10 +92,17 @@ app.post("/students", async (req, res) => {
   try {
     const { schoolCode, className, rollNo, section, studentName, subject } =
       req.body;
-    const { page = 1, limit = 10 } = req.query; // Default to page 1, limit 10
+    const { page = 1, limit = 10 } = req.query;
+
+    const schoolCodeNumber = schoolCode ? parseInt(schoolCode) : undefined;
+    if (schoolCode && isNaN(schoolCodeNumber)) {
+      return res
+        .status(400)
+        .json({ error: "Invalid school code: must be a number" });
+    }
 
     const students = await getStudentsByFilters(
-      schoolCode ? Number(schoolCode) : undefined,
+      schoolCodeNumber,
       className,
       rollNo,
       section,
@@ -121,6 +135,7 @@ app.post("/students", async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
 // API to update single student
 app.put("/student", async (req, res) => {
   try {
@@ -299,33 +314,39 @@ app.post("/fetch-study-material", async (req, res) => {
 });
 
 // API to upload student data in bulk
-app.post("/upload", upload.single("file"), async (req, res) => {
+app.post("/upload-schooldata", upload.single("file"), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ message: "Please upload an XLSX file" });
+  }
+
+  try {
+    const response = await convertXlsxToMongo(req.file.path);
+    res.status(200).json(response);
+  } catch (error) {
+    console.error("Error uploading school data:", error);
+    res.status(500).json({ error: error.message });
+  } finally {
+    // Clean up the uploaded file
+    await fs
+      .unlink(req.file.path)
+      .catch((err) => console.error("Error deleting file:", err));
+  }
+});
+
+// API to upload school data in bulk
+app.post("/upload-schooldata", upload.single("file"), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: "Please upload a CSV file" });
   }
 
   try {
-    const response = await excelToMongoDB(req.file.path);
+    const response = await convertXlsxToMongo(req.file.path);
     res.status(200).json(response);
   } catch (error) {
-    console.error("Error inserting data:", error);
-    res.status(500).json({ message: "Error uploading data" });
+    res.status(500).json({ error: error.message });
   }
 });
 
-// API to upload school data in bulk
-// app.post("/upload-schooldata", upload.single("file"), async (req, res) => {
-//   if (!req.file) {
-//     return res.status(400).json({ message: "Please upload a CSV file" });
-//   }
-
-//   try {
-//     const response = await convertXlsxToMongo(req.file.path);
-//     res.status(200).json(response);
-//   } catch (error) {
-//     res.status(500).json({ error: error.message });
-//   }
-// });
 // API to add single student
 app.post("/add-student", async (req, res) => {
   try {
@@ -402,7 +423,9 @@ app.delete("/school/:schoolCode", async (req, res) => {
   const queryCode = new Int32(parsedCode);
 
   try {
-    const deletedSchool = await School.findOneAndDelete({ schoolCode: queryCode });
+    const deletedSchool = await School.findOneAndDelete({
+      schoolCode: queryCode,
+    });
 
     if (!deletedSchool) {
       return res.status(404).json({ message: "School not found" });
@@ -419,6 +442,8 @@ app.delete("/school/:schoolCode", async (req, res) => {
 });
 
 app.post("/add-school", async (req, res) => {
+  console.log(req.body);
+
   try {
     const newSchool = new School(req.body);
     const savedSchool = await newSchool.save();
@@ -444,7 +469,9 @@ app.get("/all-students", async (req, res) => {
       (await STUDENT_LATEST.countDocuments()) / limit
     );
     const totalStudents = await STUDENT_LATEST.countDocuments();
-    return res.status(200).json({ allStudents, totalPages,totalStudents, success: true });
+    return res
+      .status(200)
+      .json({ allStudents, totalPages, totalStudents, success: true });
   } catch (error) {
     console.error("❌ Error fetching all students:", error);
     res.status(500).json({ message: "Error fetching all students", error });

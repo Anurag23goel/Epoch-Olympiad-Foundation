@@ -1,39 +1,47 @@
-const XLSX = require("xlsx");
+import fs from "fs";
+import { parse } from "csv-parse";
+import { School } from "./school.js";
+import mongoose from "mongoose";
 
-async function convertXlsxToMongo(filePath) {
+export async function convertXlsxToMongo(filePath) {
   try {
-    // Read the Excel file
-    const workbook = XLSX.readFile(filePath);
-    const sheetName = workbook.SheetNames[0]; // Assuming data is in the first sheet
-    const worksheet = workbook.Sheets[sheetName];
+    // Read and parse the CSV file
+    const schools = [];
+    const parser = fs
+      .createReadStream(filePath)
+      .pipe(
+        parse({
+          columns: [
+            "schoolCode",
+            "schoolName",
+            "schoolMobNo",
+            "schoolEmail",
+            "area",
+            "city",
+            "zone",
+            "state",
+            "country",
+            "principalName",
+            "principalMobNo",
+            "principalDob",
+            "examCenterLevel1",
+            "examCenterLandmarkLevel1",
+            "examCenterLevel2",
+            "examCenterLandmarkLevel2",
+            "showAmountPaid",
+            "showPerformance",
+            "allowFreeDownload",
+          ],
+          skip_lines: 1, // Skip header row
+          trim: true,
+        })
+      );
 
-    // Convert sheet to JSON
-    const schools = XLSX.utils.sheet_to_json(worksheet, {
-      header: [
-        "schoolCode",
-        "schoolName",
-        "schoolMobNo",
-        "schoolEmail",
-        "area",
-        "city",
-        "zone",
-        "state",
-        "country",
-        "principalName",
-        "principalMobNo",
-        "principalDob",
-        "examCenterLevel1",
-        "examCenterLandmarkLevel1",
-        "examCenterLevel2",
-        "examCenterLandmarkLevel2",
-        "showAmountPaid",
-        "showPerformance",
-        "allowFreeDownload",
-      ],
-      range: 1, // Skip header row
-    });
+    for await (const record of parser) {
+      schools.push(record);
+    }
 
-    // Process the data to handle empty values and data types
+    // Process the data
     const processedSchools = schools.map((school) => ({
       schoolCode: school.schoolCode ? parseInt(school.schoolCode) : null,
       schoolName: school.schoolName || "",
@@ -60,22 +68,20 @@ async function convertXlsxToMongo(filePath) {
       allowFreeDownload: school.allowFreeDownload || "",
     }));
 
-    // Insert new data
+    // Check if MongoDB is connected
+    if (mongoose.connection.readyState !== 1) {
+      throw new Error("MongoDB is not connected");
+    }
+
+    // Insert data
     await School.insertMany(processedSchools);
     console.log(
       `Successfully inserted ${processedSchools.length} schools into MongoDB`
     );
 
-    // Close connection
-    mongoose.connection.close();
+    return { success: true, message: `Inserted ${processedSchools.length} schools` };
   } catch (error) {
-    console.error("Error processing XLSX file:", error);
-    mongoose.connection.close();
+    console.error("Error processing CSV file:", error);
+    throw error;
   }
 }
-
-// Path to your XLSX file
-const filePath =
-  "C:/Users/anura/Desktop/student-portal-purav/student-portal-backend/copy.xlsx";
-
-convertXlsxToMongo(filePath);
