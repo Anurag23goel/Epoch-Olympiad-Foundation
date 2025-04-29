@@ -33,9 +33,9 @@ const AccordionSection = ({ title, children }) => {
 const Dashboard = () => {
   const student = useSelector((state) => state.auth.user);
 
-  console.log(student);
+  const hasParticipated = (key) => student?.[key] === "1";
 
-  // Extract subject prefixes dynamically (e.g., IAOL, IITSTL, IIMOL, IGKOL, IENGOL)
+  // Extract subject prefixes like IAOL, IIMOL, etc.
   const subjects = Array.from(
     new Set(
       Object.keys(student || {})
@@ -44,12 +44,12 @@ const Dashboard = () => {
     )
   ).map((prefix) => ({
     prefix,
-    display: prefix, // Use full prefix (e.g., IAOL) instead of shortening
+    display: prefix,
   }));
 
   return (
     <div className="flex-1 w-full min-h-screen lg:p-8 p-4">
-      {/* HEADER USER INFO */}
+      {/* HEADER */}
       <div className="flex justify-between items-center mb-8 animate-fade-in">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-gradient-to-br from-indigo-400 to-indigo-600 rounded-full flex items-center justify-center shadow-lg transform hover:scale-105 transition-transform duration-300">
@@ -94,7 +94,7 @@ const Dashboard = () => {
         />
       </div>
 
-      {/* Participation Details Accordion */}
+      {/* Participation Details */}
       <AccordionSection title="Participation Details">
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm text-gray-700">
@@ -110,7 +110,7 @@ const Dashboard = () => {
               </tr>
             </thead>
             <tbody>
-              {/* Basic Level Row */}
+              {/* Basic Level */}
               <tr className="border-b last:border-b-0 hover:bg-gray-50 transition duration-200">
                 <td className="px-6 py-4">
                   <div className="flex items-center">
@@ -124,12 +124,12 @@ const Dashboard = () => {
                   <td key={idx} className="px-6 py-4">
                     <span
                       className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        student[`${subject.prefix} Basic`] === 1
+                        hasParticipated(`${subject.prefix} Basic`)
                           ? "bg-green-100 text-green-800"
                           : "bg-gray-100 text-gray-600"
                       }`}
                     >
-                      {student[`${subject.prefix} Basic`] === 1 ? "Yes" : "Not participated"}
+                      {hasParticipated(`${subject.prefix} Basic`) ? "Yes" : "Not participated"}
                     </span>
                   </td>
                 ))}
@@ -138,7 +138,8 @@ const Dashboard = () => {
                   {student["Basic Level Amount Paid Online"] || "0"}
                 </td>
               </tr>
-              {/* Advance Level Row */}
+
+              {/* Advance Level */}
               <tr className="border-b last:border-b-0 hover:bg-gray-50 transition duration-200">
                 <td className="px-6 py-4">
                   <div className="flex items-center">
@@ -152,12 +153,12 @@ const Dashboard = () => {
                   <td key={idx} className="px-6 py-4">
                     <span
                       className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        student[`${subject.prefix} Advance`] === 1
+                        hasParticipated(`${subject.prefix} Advance`)
                           ? "bg-green-100 text-green-800"
                           : "bg-gray-100 text-gray-600"
                       }`}
                     >
-                      {student[`${subject.prefix} Advance`] === 1
+                      {hasParticipated(`${subject.prefix} Advance`)
                         ? subject.display === "IIMOL"
                           ? "✓ Qualified"
                           : "Yes"
@@ -175,7 +176,7 @@ const Dashboard = () => {
         </div>
       </AccordionSection>
 
-      {/* Workbook Details Accordion */}
+      {/* Workbook Details */}
       <AccordionSection title="Workbook Details">
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm text-gray-700">
@@ -195,19 +196,18 @@ const Dashboard = () => {
                   <td key={idx} className="px-6 py-4">
                     <span
                       className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        student[`${subject.prefix} Basic Book`] === 1
+                        hasParticipated(`${subject.prefix} Basic Book`)
                           ? "bg-green-100 text-green-800"
                           : "bg-gray-100 text-gray-600"
                       }`}
                     >
-                      {student[`${subject.prefix} Basic Book`] === 1 ? "Yes" : "No"}
+                      {hasParticipated(`${subject.prefix} Basic Book`) ? "Yes" : "No"}
                     </span>
                   </td>
                 ))}
                 <td className="px-6 py-4 text-gray-600">
-                  {subjects.some(
-                    (subject) => student[`${subject.prefix} Basic Book`] === 1
-                  ) && student.bookStatus
+                  {subjects.some((subject) => hasParticipated(`${subject.prefix} Basic Book`)) &&
+                  student.bookStatus
                     ? `Delivered on ${student.bookStatus}`
                     : "Not delivered"}
                 </td>
@@ -216,91 +216,8 @@ const Dashboard = () => {
           </table>
         </div>
       </AccordionSection>
-
-      {/* Special Study Materials Accordion (Commented Out) */}
-      {/* <AccordionSection title="Special Study Materials">
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm text-gray-700">
-            <thead className="bg-gray-100 text-xs uppercase font-semibold">
-              <tr>
-                <th className="px-6 py-3 text-left">Eligible for Free</th>
-                <th className="px-6 py-3 text-left">Free Materials Worth</th>
-                <th className="px-6 py-3 text-left">Details</th>
-                <th className="px-6 py-3 text-left">Remark</th>
-                <th className="px-6 py-3 text-right">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="border-b last:border-b-0 hover:bg-gray-50 transition duration-200">
-                <td className="px-6 py-4">
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                    Yes
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-gray-600">₹ 200</td>
-                <td className="px-6 py-4 text-gray-600">
-                  1 Online Practice Exam, 1 Basic Level Sample Paper, 1 Advance Level Sample Paper
-                </td>
-                <td className="px-6 py-4 text-gray-600">Opt 3 more exams</td>
-                <td className="px-6 py-4 text-right">
-                  <a
-                    href="#"
-                    className="inline-flex items-center px-3 py-1 bg-indigo-600 text-white text-xs font-medium rounded-md hover:bg-indigo-700 transition duration-150"
-                  >
-                    <svg
-                      className="w-4 h-4 mr-1"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                      ></path>
-                    </svg>
-                    Download
-                  </a>
-                </td>
-              </tr>
-              <tr className="border-b last:border-b-0 hover:bg-gray-50 transition duration-200">
-                <td className="px-6 py-4 text-gray-600">No</td>
-                <td className="px-6 py-4 text-gray-600">₹ 2000</td>
-                <td className="px-6 py-4 text-gray-600">
-                  8 Online Practice Exams Free, 4 Previous Year Basic Level Papers, 3 Previous Year Advance Level Papers, 4 Basic Level Sample Papers, 3 Advance Level Sample Papers
-                </td>
-                <td className="px-6 py-4 text-gray-600">Get study materials worth ₹ 2000</td>
-                <td className="px-6 py-4 text-right">
-                  <button className="inline-flex items-center px-3 py-1 bg-indigo-600 text-white text-xs font-medium rounded-md hover:bg-indigo-700 transition duration-150">
-                    <svg
-                      className="w-4 h-4 mr-1"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01m-.01 4h.01"
-                      ></path>
-                    </svg>
-                    Click here
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </AccordionSection> */}
     </div>
   );
 };
 
 export default Dashboard;
-
-
- 

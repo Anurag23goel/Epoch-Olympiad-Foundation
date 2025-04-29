@@ -90,8 +90,14 @@ app.get("/get-student", async (req, res) => {
 // API to fetch students by school and class (used by frontend)
 app.post("/students", async (req, res) => {
   try {
-    const { schoolCode, className, rollNo, section, studentName, subject } =
-      req.body;
+    const {
+      schoolCode,
+      className,
+      rollNo,
+      section,
+      studentName,
+      subject,
+    } = req.body;
     const { page = 1, limit = 10 } = req.query;
 
     const schoolCodeNumber = schoolCode ? parseInt(schoolCode) : undefined;
@@ -139,31 +145,100 @@ app.post("/students", async (req, res) => {
 // API to update single student
 app.put("/student", async (req, res) => {
   try {
-    const { id, rollNo, ...updateFields } = req.body;
+    const { rollNo, _id, ...updateFields } = req.body;
 
-    if (!rollNo || !id) {
+    // Validate required fields
+    if (!_id && !rollNo) {
       return res
         .status(400)
-        .json({ message: "Roll No and Class are required" });
+        .json({ message: "Either _id or rollNo is required" });
     }
 
-    const updatedStudent = await STUDENT_LATEST.findByIdAndUpdate(
-      id,
-      { $set: updateFields },
-      { new: true, runValidators: true }
-    );
+    // Validate required fields
+    if (updateFields.rollNo && updateFields.rollNo.trim() === "") {
+      return res.status(400).json({ message: "rollNo cannot be empty" });
+    }
+    if (updateFields.schoolCode && isNaN(updateFields.schoolCode)) {
+      return res.status(400).json({ message: "schoolCode must be a number" });
+    }
+    if (updateFields.class && updateFields.class.trim() === "") {
+      return res.status(400).json({ message: "class cannot be empty" });
+    }
+    if (updateFields.section && updateFields.section.trim() === "") {
+      return res.status(400).json({ message: "section cannot be empty" });
+    }
+    if (updateFields.studentName && updateFields.studentName.trim() === "") {
+      return res.status(400).json({ message: "studentName cannot be empty" });
+    }
+
+    // Validate Duplicates field
+    if (updateFields.Duplicates !== undefined) {
+      if (
+        updateFields.Duplicates !== true &&
+        updateFields.Duplicates !== false &&
+        updateFields.Duplicates !== "true" &&
+        updateFields.Duplicates !== "false" &&
+        updateFields.Duplicates !== "1" &&
+        updateFields.Duplicates !== "0"
+      ) {
+        return res
+          .status(400)
+          .json({ message: "Duplicates must be a boolean value" });
+      }
+      // Convert to boolean
+      updateFields.Duplicates =
+        updateFields.Duplicates === "1" ||
+        updateFields.Duplicates === "true" ||
+        updateFields.Duplicates === true;
+    }
+
+    let updatedStudent;
+    if (_id) {
+      // Update by _id
+      updatedStudent = await STUDENT_LATEST.findByIdAndUpdate(
+        _id,
+        { $set: updateFields },
+        { new: true, runValidators: true }
+      );
+    } else {
+      // Update by rollNo
+      updatedStudent = await STUDENT_LATEST.findOneAndUpdate(
+        { rollNo },
+        { $set: updateFields },
+        { new: true, runValidators: true }
+      );
+    }
 
     if (!updatedStudent) {
       return res.status(404).json({ message: "Student not found" });
     }
 
+    // Check for rollNo uniqueness if rollNo is being updated
+    if (updateFields.rollNo && updateFields.rollNo !== rollNo) {
+      const existingStudent = await STUDENT_LATEST.findOne({
+        rollNo: updateFields.rollNo,
+        _id: { $ne: updatedStudent._id },
+      });
+      if (existingStudent) {
+        return res.status(400).json({ message: "rollNo must be unique" });
+      }
+    }
+
     res.json({ message: "Student updated successfully", updatedStudent });
   } catch (error) {
     console.error("Error updating student:", error);
-    res.status(500).json({
-      message: "Error updating student",
-      error: error.message || error,
-    });
+    if (error.name === "CastError") {
+      res.status(400).json({
+        message: `Invalid value for ${error.path}: ${error.value}`,
+      });
+    } else if (error.code === 11000) {
+      res.status(400).json({ message: "rollNo must be unique" });
+    } else {
+      res.status(500).json({
+        message: "Error updating student",
+        error: error.message || error,
+      });
+    }
   }
 });
 
@@ -336,7 +411,7 @@ app.post("/upload-schooldata", upload.single("file"), async (req, res) => {
 // API to upload student data in bulk
 app.post("/upload-studentData", upload.single("file"), async (req, res) => {
   console.log("CHAL TO RAHA HAI");
-  
+
   if (!req.file) {
     return res.status(400).json({ message: "Please upload a CSV file" });
   }

@@ -19,6 +19,7 @@ const booleanFields = [
   "IAOL2",
   "ITSTL2",
   "IMOL2",
+  "Duplicates",
 ];
 
 const AllStudents = () => {
@@ -108,7 +109,7 @@ const AllStudents = () => {
         setStudents([]);
         setTotalPages(1);
         setTotalStudents(0);
-        setNoStudentsFound(true)
+        setNoStudentsFound(true);
       }
     } catch (err) {
       console.error("Failed to fetch students:", err);
@@ -172,21 +173,6 @@ const AllStudents = () => {
       }
     }
   };
-
-  const openUpdateModal = (student) => {
-    setSelectedStudent(student);
-    const formattedData = {};
-    Object.keys(student).forEach((key) => {
-      if (booleanFields.includes(key)) {
-        formattedData[key] = student[key] === "1";
-      } else {
-        formattedData[key] = student[key] || "";
-      }
-    });
-    setUpdatedData(formattedData);
-    setIsModalOpen(true);
-  };
-
   const handleUpdateChange = (e) => {
     const { name, value, type, checked } = e.target;
     setUpdatedData((prev) => ({
@@ -195,13 +181,31 @@ const AllStudents = () => {
     }));
   };
 
+  const openUpdateModal = (student) => {
+    setSelectedStudent(student);
+    const formattedData = {};
+    Object.keys(student).forEach((key) => {
+      if (booleanFields.includes(key)) {
+        // Convert to boolean: "1" -> true, "0" -> false, or use existing boolean
+        formattedData[key] = student[key] === "1" || student[key] === true;
+      } else if (key === "schoolCode") {
+        formattedData[key] = student[key] ? Number(student[key]) : "";
+      } else {
+        formattedData[key] = student[key] || "";
+      }
+    });
+    setUpdatedData(formattedData);
+    setIsModalOpen(true);
+  };
+
+  // In handleUpdateSubmit, include _id and handle errors
   const handleUpdateSubmit = async (e) => {
     e.preventDefault();
     try {
-      const payload = {};
+      const payload = { _id: selectedStudent._id };
       Object.keys(updatedData).forEach((key) => {
         if (booleanFields.includes(key)) {
-          payload[key] = updatedData[key] ? "1" : "0";
+          payload[key] = updatedData[key] ? "1" : "0"; // Backend expects "1" or "0" for string fields
         } else {
           payload[key] = updatedData[key];
         }
@@ -212,10 +216,12 @@ const AllStudents = () => {
       fetchStudents(currentPage, searchData);
     } catch (error) {
       console.error("Update error:", error);
-      alert("Failed to update student");
+      const errorMessage =
+        error.response?.data?.message || "Failed to update student";
+      alert(errorMessage);
     }
   };
-
+  
   const handlePageChange = (page) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
@@ -538,8 +544,8 @@ const AllStudents = () => {
               <div className="text-sm text-gray-700">
                 Page {currentPage} of {totalPages} | Showing{" "}
                 {(currentPage - 1) * limit + 1} to{" "}
-                {Math.min(currentPage * limit, totalStudents)} of {totalStudents}{" "}
-                students
+                {Math.min(currentPage * limit, totalStudents)} of{" "}
+                {totalStudents} students
               </div>
               <div className="flex space-x-2">
                 <button
@@ -598,7 +604,10 @@ const AllStudents = () => {
                   {Object.keys(updatedData)
                     .filter(
                       (key) =>
-                        key !== "_id" && key !== "__v" && key !== "updatedAt"
+                        key !== "_id" &&
+                        key !== "__v" &&
+                        key !== "createdAt" &&
+                        key !== "updatedAt"
                     )
                     .map((field, idx) => (
                       <div key={idx}>
@@ -642,7 +651,13 @@ const AllStudents = () => {
                           </div>
                         ) : (
                           <input
-                            type={field === "dob" ? "date" : "text"}
+                            type={
+                              field === "dob"
+                                ? "date"
+                                : field === "schoolCode"
+                                ? "number"
+                                : "text"
+                            }
                             name={field}
                             value={updatedData[field]}
                             onChange={handleUpdateChange}
