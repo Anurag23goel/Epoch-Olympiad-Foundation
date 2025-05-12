@@ -1,7 +1,14 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import Select from "react-select";
 import { BASE_URL } from "../Api";
+import html2pdf from "html2pdf.js";
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+
+
+
+import logo from "../assets/main_logo.png";
 
 // List of fields that should be treated as booleans ("0" or "1")
 const booleanFields = [
@@ -42,6 +49,238 @@ const AllStudents = () => {
     sections: [],
     subject: "",
   });
+
+  const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
+  const [selectedExamLevel, setSelectedExamLevel] = useState('');
+  const [selectedExam, setSelectedExam] = useState('');
+  const [selectedSchoolCode, setSelectedSchoolCode] = useState('');
+  const [selectedClass, setSelectedClass] = useState('');
+  const [selectedSection, setSelectedSection] = useState('');
+  const [studentsData, setStudentsData] = useState([]);
+  const [school, setSchool] = useState({});
+
+  const attendanceRef = useRef(null);
+
+
+  const exams = [
+    { name: "IENGOL1", level: "L1" },
+    { name: "IENGOL1Book", level: "L1" },
+    { name: "IAOL1", level: "L1" },
+    { name: "IAOL1Book", level: "L1" },
+    { name: "ITSTL1", level: "L1" },
+    { name: "ITSTL1Book", level: "L1" },
+    { name: "IMOL1", level: "L1" },
+    { name: "IMOL1Book", level: "L1" },
+    { name: "IGKOL1", level: "L1" },
+    { name: "IGKOL1Book", level: "L1" },
+    { name: "IAOL2", level: "L2" },
+    { name: "ITSTL2", level: "L2" },
+    { name: "IMOL2", level: "L2" },
+    { name: "IENGOL2", level: "L2" },
+  ];
+
+  // Fetch the student data based on filters
+  const handleFetchStudents = async () => {
+    // Check if all filters are selected
+    if (!selectedExamLevel || !selectedExam || !selectedSchoolCode || !selectedClass || !selectedSection) {
+      alert("Please select all filters!");
+      return;
+    }
+
+    // Create the request body with the selected filters
+    const filters = {
+      examLevel: selectedExamLevel,
+      exam: selectedExam,
+      schoolCode: selectedSchoolCode,
+      class: selectedClass,
+      section: selectedSection,
+    };
+
+    try {
+      // Send the filters to the backend to fetch the student data
+      const res = await axios.post(`${BASE_URL}/allStudents`, filters);
+      console.log(res.data)
+      if (res.data.student) {
+        setStudentsData(res.data.student);
+        setSchool(res.data.school)
+      } else {
+        alert("Error fetching student data.");
+      }
+    } catch (error) {
+      console.error("Error fetching student data:", error);
+      alert("Error fetching student data.");
+    }
+  };
+
+
+  const handleDownloadPDF = async () => {
+    const element = attendanceRef.current;
+
+    if (!element) {
+      alert("Nothing to export!");
+      return;
+    }
+
+    try {
+      // Store original styles
+      const originalStyles = new Map();
+      const saveStyles = (node) => {
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          const style = node.style;
+          originalStyles.set(node, {
+            color: style.color,
+            backgroundColor: style.backgroundColor,
+            borderColor: style.borderColor,
+            fontSize: style.fontSize,
+            lineHeight: style.lineHeight,
+            padding: style.padding,
+            margin: style.margin,
+            fontWeight: style.fontWeight,
+            textAlign: style.textAlign,
+            width: style.width,
+            whiteSpace: style.whiteSpace,
+            wordBreak: style.wordBreak,
+          });
+          // Set PDF-safe styles to match preview
+          node.style.color = "#000000";
+          node.style.backgroundColor = "#ffffff";
+          node.style.borderColor = "#000000";
+          node.style.fontSize = "12pt";
+          node.style.lineHeight = "1.5";
+          node.style.padding = node.tagName === "P" ? "4px 0" : style.padding;
+          node.style.margin = node.tagName === "P" ? "4px 0" : style.margin;
+          if (node.tagName === "H1") {
+            node.style.fontSize = "16pt";
+            node.style.fontWeight = "bold";
+            node.style.textAlign = "center";
+          }
+          if (node.tagName === "H2") {
+            node.style.fontSize = "14pt";
+            node.style.fontWeight = "bold";
+            node.style.textAlign = "center";
+          }
+          if (node.tagName === "TABLE") {
+            node.style.borderCollapse = "collapse";
+            node.style.width = "100%";
+            node.style.boxSizing = "border-box";
+          }
+          if (node.tagName === "TH" || node.tagName === "TD") {
+            node.style.padding = "6px";
+            node.style.border = "1px solid #000000";
+            node.style.textAlign = node.tagName === "TH" ? "center" : "left";
+            node.style.whiteSpace = "normal";
+            node.style.wordBreak = "break-word";
+            // Set explicit column widths
+            if (node.cellIndex === 0) node.style.width = "7%"; // S.No
+            if (node.cellIndex === 1) node.style.width = "14%"; // Roll No
+            if (node.cellIndex === 2) node.style.width = "19%"; // Name
+            if (node.cellIndex === 3) node.style.width = "17%"; // Father
+            if (node.cellIndex === 4) node.style.width = "17%"; // Mother
+            if (node.cellIndex === 5) node.style.width = "9%"; // Class
+            if (node.cellIndex === 6) node.style.width = "7%"; // Sec
+            if (node.cellIndex === 7) node.style.width = "10%"; // Attendance
+          }
+          if (node.classList.contains("bg-gray-100")) {
+            node.style.backgroundColor = "#e5e7eb";
+          }
+          node.childNodes.forEach(saveStyles);
+        }
+      };
+
+      // Apply safe styles
+      saveStyles(element);
+
+      // Ensure element is fully visible for capture
+      const originalPosition = element.style.position;
+      const originalTop = element.style.top;
+      const originalLeft = element.style.left;
+      element.style.position = "static";
+      element.style.top = "0";
+      element.style.left = "0";
+
+      // Capture with html2canvas
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: true,
+        width: element.scrollWidth,
+        height: element.scrollHeight,
+        windowWidth: element.scrollWidth,
+        windowHeight: element.scrollHeight,
+      });
+
+      // Restore original styles and positioning
+      originalStyles.forEach((styles, node) => {
+        node.style.color = styles.color;
+        node.style.backgroundColor = styles.backgroundColor;
+        node.style.borderColor = styles.borderColor;
+        node.style.fontSize = styles.fontSize;
+        node.style.lineHeight = styles.lineHeight;
+        node.style.padding = styles.padding;
+        node.style.margin = styles.margin;
+        node.style.fontWeight = styles.fontWeight;
+        node.style.textAlign = styles.textAlign;
+        node.style.width = styles.width;
+        node.style.whiteSpace = styles.whiteSpace;
+        node.style.wordBreak = styles.wordBreak;
+      });
+      element.style.position = originalPosition;
+      element.style.top = originalTop;
+      element.style.left = originalLeft;
+
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const pageWidth = pdf.internal.pageSize.getWidth(); // 210mm
+      const pageHeight = pdf.internal.pageSize.getHeight(); // 297mm
+      const margin = 15;
+      const contentWidth = pageWidth - 2 * margin;
+      const imgWidth = contentWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      // Calculate available content height per page
+      const maxContentHeight = pageHeight - 2 * margin;
+
+      if (imgHeight <= maxContentHeight) {
+        // Single page
+        pdf.addImage(imgData, "PNG", margin, margin, imgWidth, imgHeight);
+      } else {
+        // Paginate content
+        let currentHeight = 0;
+        const pixelsPerMm = canvas.height / imgHeight; // Pixels per mm in the scaled image
+
+        while (currentHeight < imgHeight) {
+          const yOffset = currentHeight * pixelsPerMm; // Convert mm to pixels for cropping
+          pdf.addImage(
+            imgData,
+            "PNG",
+            margin,
+            margin,
+            imgWidth,
+            Math.min(maxContentHeight, imgHeight - currentHeight),
+            undefined,
+            "SLOW",
+            0,
+            -yOffset
+          );
+          currentHeight += maxContentHeight;
+          if (currentHeight < imgHeight) {
+            pdf.addPage();
+          }
+        }
+      }
+
+      // Save PDF
+      pdf.save(`Attendance_${selectedClass}_${selectedSection}.pdf`);
+    } catch (err) {
+      console.error("PDF generation failed:", err);
+      alert("Failed to generate PDF. Check console for details.");
+    }
+  };
 
   // Predefined class options
   const classOptions = [
@@ -221,7 +460,7 @@ const AllStudents = () => {
       alert(errorMessage);
     }
   };
-  
+
   const handlePageChange = (page) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
@@ -249,7 +488,8 @@ const AllStudents = () => {
 
     if (start > 2) {
       rangeWithDots.push(1);
-      rangeWithDots.push("...");
+      rangeWithDots.pu
+      sh("...");
     }
 
     rangeWithDots.push(...range);
@@ -269,26 +509,35 @@ const AllStudents = () => {
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-gray-800">All Students</h1>
-          <button
-            onClick={() => setIsFilterOpen(!isFilterOpen)}
-            className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition duration-150"
-          >
-            <svg
-              className="w-4 h-4 mr-2"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition duration-150"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M3 4a1 1 0 011-1h16a1 1 0 011 1m-17 4h14m-7 4h7m-14 4h14"
-              />
-            </svg>
-            {isFilterOpen ? "Hide Filters" : "Show Filters"}
-          </button>
+              <svg
+                className="w-4 h-4 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1m-17 4h14m-7 4h7m-14 4h14"
+                />
+              </svg>
+              {isFilterOpen ? "Hide Filters" : "Show Filters"}
+            </button>
+            <button
+              onClick={() => setIsAttendanceModalOpen(true)}
+              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition"
+            >
+              Get Attendance
+            </button>
+          </div>
         </div>
 
         {/* Search Filters */}
@@ -565,11 +814,10 @@ const AllStudents = () => {
                       <button
                         key={idx}
                         onClick={() => handlePageChange(item)}
-                        className={`px-3 py-1 rounded-md ${
-                          currentPage === item
-                            ? "bg-indigo-600 text-white"
-                            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                        }`}
+                        className={`px-3 py-1 rounded-md ${currentPage === item
+                          ? "bg-indigo-600 text-white"
+                          : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                          }`}
                       >
                         {item}
                       </button>
@@ -624,11 +872,10 @@ const AllStudents = () => {
                                   [field]: true,
                                 }))
                               }
-                              className={`px-4 py-2 text-sm font-medium ${
-                                updatedData[field]
-                                  ? "bg-green-600 text-white"
-                                  : "bg-gray-100 text-gray-700"
-                              } rounded-l-md hover:bg-green-500 hover:text-white transition`}
+                              className={`px-4 py-2 text-sm font-medium ${updatedData[field]
+                                ? "bg-green-600 text-white"
+                                : "bg-gray-100 text-gray-700"
+                                } rounded-l-md hover:bg-green-500 hover:text-white transition`}
                             >
                               Yes
                             </button>
@@ -640,11 +887,10 @@ const AllStudents = () => {
                                   [field]: false,
                                 }))
                               }
-                              className={`px-4 py-2 text-sm font-medium ${
-                                !updatedData[field]
-                                  ? "bg-red-600 text-white"
-                                  : "bg-gray-100 text-gray-700"
-                              } rounded-r-md hover:bg-red-500 hover:text-white transition`}
+                              className={`px-4 py-2 text-sm font-medium ${!updatedData[field]
+                                ? "bg-red-600 text-white"
+                                : "bg-gray-100 text-gray-700"
+                                } rounded-r-md hover:bg-red-500 hover:text-white transition`}
                             >
                               No
                             </button>
@@ -655,8 +901,8 @@ const AllStudents = () => {
                               field === "dob"
                                 ? "date"
                                 : field === "schoolCode"
-                                ? "number"
-                                : "text"
+                                  ? "number"
+                                  : "text"
                             }
                             name={field}
                             value={updatedData[field]}
@@ -687,6 +933,276 @@ const AllStudents = () => {
             </div>
           </div>
         )}
+
+
+
+       
+        {isAttendanceModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div
+              className="absolute inset-0 bg-black opacity-50"
+              onClick={() => setIsAttendanceModalOpen(false)}
+            />
+            <div className="relative z-10 bg-white rounded-lg shadow-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+
+              <h2 className="text-xl font-bold mb-4">Get Attendance</h2>
+
+              {/* Filters Form */}
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                {/* Exam Level */}
+                <div>
+                  <label className="block text-sm font-medium">Exam Level</label>
+                  <select
+                    className="mt-1 w-full border rounded px-3 py-2"
+                    value={selectedExamLevel}
+                    onChange={(e) => setSelectedExamLevel(e.target.value)}
+                  >
+                    <option value="">Select Level</option>
+                    <option value="L1">Basic</option>
+                    <option value="L2">Advance</option>
+                  </select>
+                </div>
+
+                {/* Select Exam */}
+                <div>
+                  <label className="block text-sm font-medium">Select Exam</label>
+                  <select
+                    className="mt-1 w-full border rounded px-3 py-2"
+                    value={selectedExam}
+                    onChange={(e) => setSelectedExam(e.target.value)}
+                  >
+                    <option value="">Select Exam</option>
+                    {exams
+                      .filter((exam) => exam.level === selectedExamLevel)
+                      .map((exam) => (
+                        <option key={exam.name} value={exam.name}>
+                          {exam.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
+                {/* School Code */}
+                <div>
+                  <label className="block text-sm font-medium">School Code</label>
+                  <input
+                    type="number"
+                    className="mt-1 w-full border rounded px-3 py-2"
+                    value={selectedSchoolCode}
+                    onChange={(e) => setSelectedSchoolCode(e.target.value)}
+                    placeholder="Enter School Code"
+                  />
+                </div>
+
+                {/* Class */}
+                <div>
+                  <label className="block text-sm font-medium">Select Class</label>
+                  <select
+                    className="mt-1 w-full border rounded px-3 py-2"
+                    value={selectedClass}
+                    onChange={(e) => setSelectedClass(e.target.value)}
+                  >
+                    <option value="">Select Class</option>
+                    {classOptions.map((cls) => (
+                      <option key={cls.value} value={cls.value}>
+                        {cls.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Section */}
+                <div>
+                  <label className="block text-sm font-medium">Select Section</label>
+                  <select
+                    className="mt-1 w-full border rounded px-3 py-2"
+                    value={selectedSection}
+                    onChange={(e) => setSelectedSection(e.target.value)}
+                  >
+                    <option value="">Select Section</option>
+                    {sectionOptions.map((section) => (
+                      <option key={section.value} value={section.value}>
+                        {section.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Fetch Data Button */}
+              <div className="flex justify-end mb-4">
+                <button
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                  onClick={handleFetchStudents}
+                >
+                  Fetch Students
+                </button>
+              </div>
+
+              {/* Preview Student Data */}
+              <div
+                id="download"
+                style={{ color: "#000000", backgroundColor: "#ffffff" }}
+                className="bg-white p-7 rounded-lg shadow-md border text-sm w-full"
+                ref={attendanceRef}
+              >
+                {/* Header */}
+                <div className="text-center mb-6">
+                  <img src={logo} alt="IQ Nexus" className="mx-auto h-12 mb-2" />
+                  <h1 className="text-lg font-semibold uppercase">
+                    International Aptitude Olympiad
+                  </h1>
+                  <p className="font-medium uppercase">
+                    {selectedExamLevel === "L1"
+                      ? "Basic Exam"
+                      : selectedExamLevel === "L2"
+                        ? "Advanced Exam"
+                        : "Exam Level Not Selected"}
+                  </p>
+                  <h2 className="font-bold uppercase underline mt-2">
+                    Attendance List
+                  </h2>
+                </div>
+
+                {/* School Info */}
+                <div className="grid grid-cols-2 text-xs mb-6 gap-y-2">
+                  <div>
+                    <p>
+                      <strong>School Name:</strong> {school.schoolName || "N/A"}
+                    </p>
+                    <p>
+                      <strong>School Code:</strong> {school.schoolCode || "N/A"}
+                    </p>
+                    <p>
+                      <strong>City:</strong> {school.city || "N/A"}
+                    </p>
+                    <p>
+                      <strong>Area:</strong> {school.area || "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <p>
+                      <strong>Class:</strong> {selectedClass || "N/A"}
+                    </p>
+                    <p>
+                      <strong>Section:</strong> {selectedSection || "N/A"}
+                    </p>
+                    <p>
+                      <strong>Exam Incharge:</strong> {school.incharge || "N/A"}
+                    </p>
+                    <p>
+                      <strong>Class Teacher:</strong> {school.incharge || "N/A"}
+                    </p>
+                    <p>
+                      <strong>Print Date:</strong>{" "}
+                      {new Date().toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Table */}
+                <table className="table-auto w-full border text-center text-xs mb-4">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="border px-2 py-1">S.No</th>
+                      <th className="border px-2 py-1">Roll No</th>
+                      <th className="border px-2 py-1">Name</th>
+                      <th className="border px-2 py-1">Father</th>
+                      <th className="border px-2 py-1">Mother</th>
+                      <th className="border px-2 py-1">Class</th>
+                      <th className="border px-2 py-1">Sec</th>
+                      <th className="border px-2 py-1">Attendance (P/A)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {studentsData.length > 0 ? (
+                      studentsData.map((student, index) => (
+                        <tr key={student._id || index}>
+                          <td className="border px-2 py-1">{index + 1}</td>
+                          <td className="border px-2 py-1">{student.rollNo}</td>
+                          <td className="border px-2 py-1">
+                            {student.studentName}
+                          </td>
+                          <td className="border px-2 py-1">
+                            {student.fatherName || ""}
+                          </td>
+                          <td className="border px-2 py-1">
+                            {student.motherName || ""}
+                          </td>
+                          <td className="border px-2 py-1">{student.class}</td>
+                          <td className="border px-2 py-1">{student.section}</td>
+                          <td className="border px-2 py-1">
+                            {/* {student[selectedExam] === "1" ? "P" : "A"} */}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={8} className="text-center border py-3">
+                          No student data available
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+
+                {/* Footer Summary */}
+                <div className="grid grid-cols-2 text-xs mb-2">
+                  <div>
+                    <p>
+                      <strong>Present Student:</strong>{" "}
+                      {/* {studentsData.filter((s) => s[selectedExam] === "1").length} */}
+                    </p>
+                    <p>
+                      <strong>Absent Student:</strong>{" "}
+                      {/* {studentsData.filter((s) => s[selectedExam] !== "1").length} */}
+                    </p>
+                  </div>
+                  <div>
+                    <p>
+                      <strong>Information Filled By:</strong>{" "}
+                      ______________________
+                    </p>
+                    <p>
+                      <strong>Mobile No:</strong> ____________________
+                    </p>
+                    <p>
+                      <strong>Sign:</strong> ____________________
+                    </p>
+                  </div>
+                </div>
+
+                {/* Note */}
+                <div className="text-xs border-t pt-2 mt-2">
+                  <strong>IMPORTANT NOTE:</strong> Please note that we shall print
+                  certificates as per the above details. So this is very important
+                  to check the spelling and correct if found wrong. So ask every
+                  participant to cross check their details and then sign on it. We
+                  will not re-print the certificate(s) after that.
+                </div>
+                <div className="mt-2"></div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-between mt-2">
+                <button
+                  onClick={() => setIsAttendanceModalOpen(false)}
+                  className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md"
+                >
+                  Close
+                </button>
+
+                <button
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md"
+                  onClick={handleDownloadPDF} // Implement this if needed
+                >
+                  Download PDF
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );

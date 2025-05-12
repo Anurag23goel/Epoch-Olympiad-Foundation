@@ -26,4 +26,3 @@ const schoolSchema = new mongoose.Schema({
 const modelName = "schools-datas";
 
 export const School = mongoose.models[modelName] || mongoose.model(modelName, schoolSchema, modelName);
-

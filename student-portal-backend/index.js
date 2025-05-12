@@ -142,6 +142,33 @@ app.post("/students", async (req, res) => {
   }
 });
 
+// Tushar
+app.post("/allStudents", async (req, res) => {
+  const { schoolCode, class: cls, section, exam, examLevel } = req.body;
+
+  if (!schoolCode || !cls || !section || !exam || !examLevel) {
+    return res.status(400).json({ message: 'Missing required fields' });
+  }
+
+  const school = await School.findOne({ schoolCode: schoolCode });
+
+  try {
+    const students = await STUDENT_LATEST.find({
+      schoolCode,
+      class: cls,
+      section,
+    });
+
+    // Filter students who participated in the selected exam (value === "1")
+    // const filtered = students.filter(student => student[exam] === "1");
+    return res.status(200).json({ student: students, school });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+
+});
+// Tushar
+
 // API to update single student
 app.put("/student", async (req, res) => {
   try {
@@ -243,9 +270,9 @@ app.put("/student", async (req, res) => {
 });
 
 // API to fetch admit-card
-app.get("/fetch-admit-card/:mobNo", async (req, res) => {
+app.post("/fetch-admit-card", async (req, res) => {
   try {
-    const { mobNo } = req.params;
+    const { mobNo, level, session } = req.body;
 
     let studentData = studentCache[mobNo] || (await fetchDataByMobile(mobNo));
     if (!studentData || !studentData["Mob No"]) {
@@ -261,7 +288,7 @@ app.get("/fetch-admit-card/:mobNo", async (req, res) => {
         .status(400)
         .json({ error: "Invalid student details in cache" });
     }
-    await fetchAdmitCardFromDB(studentName, res);
+    await fetchAdmitCardFromDB(studentName, res, level, session);
   } catch (error) {
     console.error("Error processing request:", error);
     res.status(500).json({ error: "Failed to process request" });
@@ -289,7 +316,7 @@ app.get("/fetch-ceritficate/:mobNo", async (req, res) => {
 
 // API to generate & upload admit card
 app.post("/admit-card", async (req, res) => {
-  const { mobNo } = req.body;
+  const { mobNo, level, session } = req.body;
 
   if (!mobNo) {
     return res.status(400).json({ error: "Mobile number is required" });
@@ -304,13 +331,13 @@ app.post("/admit-card", async (req, res) => {
   studentCache[mobNo] = studentData;
 
   try {
-    const result = await generateAdmitCard(studentData);
+    const result = await generateAdmitCard(studentData, level, session);
     if (!result.success) {
       return res.status(500).json({ error: result.error });
     }
 
     await dbConnection();
-    await uploadAdmitCard(studentData, res);
+    await uploadAdmitCard(studentData, res, level, session);
 
     if (!res.headersSent) {
       return res.status(200).json({
@@ -410,7 +437,6 @@ app.post("/upload-schooldata", upload.single("file"), async (req, res) => {
 
 // API to upload student data in bulk
 app.post("/upload-studentData", upload.single("file"), async (req, res) => {
-  console.log("CHAL TO RAHA HAI");
 
   if (!req.file) {
     return res.status(400).json({ message: "Please upload a CSV file" });
@@ -455,6 +481,20 @@ app.get("/all-schools", async (req, res) => {
     res.status(500).json({ message: "Error fetching schools", error });
   }
 });
+
+// get-school
+
+app.get("/get-school/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const school = await School.findOne({ schoolCode: id })
+    return res.status(200).json({ school, success: true });
+  } catch (error) {
+    console.error("❌ Error fetching schools:", error);
+    res.status(500).json({ message: "Error fetching schools", error });
+  }
+});
+
 
 app.put("/school", async (req, res) => {
   try {
@@ -519,7 +559,6 @@ app.delete("/school/:schoolCode", async (req, res) => {
 });
 
 app.post("/add-school", async (req, res) => {
-  console.log(req.body);
 
   try {
     const newSchool = new School(req.body);
@@ -623,4 +662,4 @@ app.listen(PORT, () => {
   console.log(`Server is UP and RUNNING on port ${PORT}`);
 });
 
-export default app; // Optional, if you need to import app elsewhere
+export default app;

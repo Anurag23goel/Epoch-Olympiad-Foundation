@@ -5,14 +5,10 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 
 dotenv.config();
-
-// Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI);
 
 export async function convertXlsxToMongoDbForSchool(filePath) {
   try {
-    // Read and parse the CSV file
-    // CSV columns: School Code,School Name,Email Id,FAX,Area,City,Country,Incharge,Incharge DOB,Incharge Mob,Principal Name,Principal DOB,Principal Mob,Remark
     const schools = [];
     const invalidRecords = [];
     const parser = fs
@@ -35,7 +31,7 @@ export async function convertXlsxToMongoDbForSchool(filePath) {
             "Principal Mob",
             "Remark",
           ],
-          skip_lines: 1, // Skip header row
+          skip_lines: 1, 
           trim: true,
         })
       );
@@ -44,9 +40,7 @@ export async function convertXlsxToMongoDbForSchool(filePath) {
       schools.push(record);
     }
 
-    // Process the data according to schema
     const processedSchools = schools.map((school, index) => {
-      // Validate schoolCode
       let schoolCode = null;
       if (school["School Code"]) {
         const parsedCode = parseInt(school["School Code"]);
@@ -54,7 +48,7 @@ export async function convertXlsxToMongoDbForSchool(filePath) {
           schoolCode = parsedCode;
         } else {
           invalidRecords.push({
-            row: index + 2, // +2 to account for header and 1-based indexing
+            row: index + 2, 
             schoolCode: school["School Code"],
             message: `Invalid schoolCode value: "${school["School Code"]}"`,
           });
@@ -79,17 +73,14 @@ export async function convertXlsxToMongoDbForSchool(filePath) {
       };
     });
 
-    // Log invalid records if any
     if (invalidRecords.length > 0) {
       console.warn("Invalid records found:", invalidRecords);
     }
 
-    // Check if MongoDB is connected
     if (mongoose.connection.readyState !== 1) {
       throw new Error("MongoDB is not connected");
     }
 
-    // Insert data
     await School.insertMany(processedSchools);
     console.log(
       `Successfully inserted ${processedSchools.length} schools into MongoDB`

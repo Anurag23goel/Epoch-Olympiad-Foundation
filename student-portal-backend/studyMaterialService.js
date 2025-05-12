@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 mongoose
   .connect(process.env.MONGO_URI)
@@ -41,4 +41,4 @@ async function fetchStudyMaterial(studentClass) {
   }
 }
 
-module.exports = { fetchStudyMaterial, mongoose, StudyMaterial };
+export { fetchStudyMaterial, mongoose, StudyMaterial };

@@ -47,9 +47,7 @@ const AllSchools = () => {
   const handleDelete = async (schoolCode) => {
     if (window.confirm(`Are you sure you want to delete school with code ${schoolCode}?`)) {
       try {
-        const res = await axios.delete(`${BASE_URL}/school`, {
-          data: { schoolCode },
-        });
+        const res = await axios.delete(`${BASE_URL}/school/${schoolCode}`);
         alert(res.data.message);
         fetchSchools(currentPage);
       } catch (err) {
@@ -306,11 +304,10 @@ const AllSchools = () => {
                         <button
                           key={idx}
                           onClick={() => handlePageChange(item)}
-                          className={`px-3 py-1 rounded-md ${
-                            currentPage === item
-                              ? "bg-indigo-600 text-white"
-                              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                          }`}
+                          className={`px-3 py-1 rounded-md ${currentPage === item
+                            ? "bg-indigo-600 text-white"
+                            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                            }`}
                         >
                           {item}
                         </button>
@@ -360,10 +357,10 @@ const AllSchools = () => {
                             field === "inchargeDob" || field === "principalDob"
                               ? "date"
                               : field === "schoolCode"
-                              ? "number"
-                              : field === "schoolEmail"
-                              ? "email"
-                              : "text"
+                                ? "number"
+                                : field === "schoolEmail"
+                                  ? "email"
+                                  : "text"
                           }
                           name={field}
                           value={updatedData[field]}

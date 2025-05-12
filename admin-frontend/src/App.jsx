@@ -10,6 +10,7 @@ import UpdateStudent from "./pages/UpdateStudent";
 import AllSchools from "./pages/AllSchools";
 import AllStudents from "./pages/AllStudents";
 import LoginPage from "./pages/LoginPage";
+import AdmitCard from "./pages/AdmitCard"
 
 const App = () => {
   return (
@@ -26,6 +27,7 @@ const App = () => {
             {/* <Route path="/updateStudent" element={< UpdateStudent />} /> */}
             <Route path="/allSchools" element={< AllSchools />} />
             <Route path="/allStudents" element={< AllStudents />} />
+            <Route path="/genrate-admit-card" element={< AdmitCard />} />
           </Route>
         </Routes>
       </Router>

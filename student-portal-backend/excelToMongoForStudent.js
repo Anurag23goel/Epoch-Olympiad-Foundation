@@ -1,15 +1,11 @@
 import fs from "fs";
 import { parse } from "csv-parse";
-import { STUDENT_LATEST } from "./newStudentModel.model.js"; // Adjust path to your student schema file
+import { STUDENT_LATEST } from "./newStudentModel.model.js"
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-// MongoDB connection is handled centrally (e.g., in index.js)
-// mongoose.connect(process.env.MONGO_URI);
-
-// Mapping of CSV headers to MongoDB schema field names (based on StudentSchema)
 const renameFields = {
   "Roll No.": "rollNo",
   Duplicates: "Duplicates",
